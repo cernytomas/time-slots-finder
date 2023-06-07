@@ -1,14 +1,9 @@
-import { getAvailableTimeSlotsInCalendar } from "../src"
+import { getAvailableTimeSlots } from "../src"
 import MockDate from "mockdate"
 import iCalTestJSON from "./resources/calendar-ical.json"
-import iCalTestEncompassing from "./resources/calendar-ical-encompassing.json"
-import iCalTestEncompassing2 from "./resources/calendar-ical-encompassing-2.json"
-import iCalTestLarge from "./resources/calendar-ical-large.json"
 import { TimeSlotsFinderError } from "../src/errors"
 import { Period } from "../lib"
 const jestConsole = console
-
-const iCalData = (iCalTestJSON as unknown as { data: string }).data
 
 const baseConfig = {
 	timeSlotDuration: 15,
@@ -19,7 +14,7 @@ const baseConfig = {
 	timeZone: "Europe/Paris",
 }
 
-describe("Time Slot Finder", () => {
+describe("Time Slot Finder Luxon based", () => {
 	beforeEach(() => {
 	  MockDate.reset()
 	  global.console = require('console')
@@ -45,7 +40,7 @@ describe("Time Slot Finder", () => {
 
 		it("should run fast on large calendar data set", () => {
 			const start = Date.now()
-			const slots = getAvailableTimeSlotsInCalendar({
+			const slots = getAvailableTimeSlots({
 				configuration: {
 					timeZone: "Europe/Paris",
 					timeSlotDuration: 15,
@@ -84,44 +79,16 @@ describe("Time Slot Finder", () => {
 				to: new Date("2025-10-25T23:00:00.000+02:00")
 			})
 			const end = Date.now()
-		  console.log(slots.length)
 			// Results must be computing withing 1 sec (700ms on last test)
+		  	console.log(end-start)
 			expect(end - start).toBeLessThan(1000)
+			expect(slots.length).toBe(722)
 		})
 	})
 
-	it("should take in account an encompassing timeslot of 2 time slots", () => {
-		MockDate.set(new Date("2022-04-04T19:00:00.000Z"))
-		const slots = getAvailableTimeSlotsInCalendar({
-			calendarData: iCalTestEncompassing2.data,
-			configuration: {
-				timeZone: "Europe/Paris",
-				timeSlotDuration: 60,
-				availablePeriods: [
-					{
-						isoWeekDay: 7,
-						shifts: [
-							{
-								startTime: "09:00",
-								endTime: "20:00"
-							}
-						]
-					}
-				],
-				slotStartMinuteStep: 15
-			},
-			from: new Date("2022-04-10T00:00:00.000+02:00"),
-			to: new Date("2022-04-11T00:00:00.000+02:00")
-		})
-		/**
-		 * Encompassing event is from 4 to 14.
-		 * To respect available period (9 to 14h15) we should only have a proposal at 14h
-		 */
-		expect(slots[0].startAt.toISOString()).toBe("2022-04-10T08:00:00.000Z")
-	})
 	it("should return slot with start minute '00' for 'from' in past", () => {
 		MockDate.set(new Date("2023-05-03T07:13:36.123Z"))
-		const slots = getAvailableTimeSlotsInCalendar({
+		const slots = getAvailableTimeSlots({
 			configuration: {
 				timeZone: "Europe/Paris",
 				timeSlotDuration: 60,
@@ -143,9 +110,10 @@ describe("Time Slot Finder", () => {
 		})
 		expect(slots[0].startAt.toISOString()).toBe("2023-05-03T08:00:00.000Z")
 	})
+
 	it("should return slot with start minute '00' for 'from' in future with random time", () => {
 		MockDate.set(new Date("2023-05-03T07:13:36.123Z"))
-		const slots = getAvailableTimeSlotsInCalendar({
+		const slots = getAvailableTimeSlots({
 			configuration: {
 				timeZone: "Europe/Paris",
 				timeSlotDuration: 60,
@@ -167,38 +135,10 @@ describe("Time Slot Finder", () => {
 		})
 		expect(slots[0].startAt.toISOString()).toBe("2023-05-03T08:00:00.000Z")
 	})
-	it("should take in account an encompassing timeslot", () => {
-		MockDate.set(new Date("2022-04-04T19:00:00.000Z"))
-		const slots = getAvailableTimeSlotsInCalendar({
-			calendarData: iCalTestEncompassing.data,
-			configuration: {
-				timeZone: "Europe/Paris",
-				timeSlotDuration: 15,
-				availablePeriods: [
-					{
-						isoWeekDay: 7,
-						shifts: [
-							{
-								startTime: "09:00",
-								endTime: "14:15"
-							}
-						]
-					}
-				]
-			},
-			from: new Date("2022-04-10T00:00:00.000+02:00"),
-			to: new Date("2022-04-11T00:00:00.000+02:00")
-		})
-		/**
-		 * Encompassing event is from 4 to 14.
-		 * To respect available period (9 to 14h15) we should only have a proposal at 14h
-		 */
-		expect(slots.length).toBe(1)
-		expect(slots[0].startAt.toISOString()).toBe("2022-04-10T12:00:00.000Z")
-	})
+
 	it("should return slots even without calendar data", () => {
 		MockDate.set(new Date("2020-10-14T15:00:00.000Z"))
-		const slots = getAvailableTimeSlotsInCalendar({
+		const slots = getAvailableTimeSlots({
 			configuration: {
 				timeSlotDuration: 60,
 				availablePeriods: [{
@@ -214,7 +154,7 @@ describe("Time Slot Finder", () => {
 	})
 	it("should handle properly timeSlotDuration parameter", () => {
 		MockDate.set(new Date("2020-10-14T15:00:00.000Z"))
-		const slots = getAvailableTimeSlotsInCalendar({
+		const slots = getAvailableTimeSlots({
 			configuration: {
 				timeSlotDuration: 45,
 				availablePeriods: [{
@@ -227,7 +167,7 @@ describe("Time Slot Finder", () => {
 			to: new Date("2020-10-15T20:00:00.000Z"),
 		})
 		slots.forEach((slot) => expect(slot.duration).toBe(45))
-		const slots2 = getAvailableTimeSlotsInCalendar({
+		const slots2 = getAvailableTimeSlots({
 			configuration: {
 				timeSlotDuration: 15,
 				availablePeriods: [{
@@ -243,7 +183,7 @@ describe("Time Slot Finder", () => {
 	})
 	it("should handle properly slotStartMinuteMultiple parameter", () => {
 		MockDate.set(new Date("2020-10-15T15:03:12.592Z"))
-		const slots = getAvailableTimeSlotsInCalendar({
+		const slots = getAvailableTimeSlots({
 			configuration: {
 				timeSlotDuration: 10,
 				slotStartMinuteStep: 5,
@@ -263,7 +203,7 @@ describe("Time Slot Finder", () => {
 		expect(slots[3].startAt.toISOString()).toBe("2020-10-15T15:35:00.000Z")
 		expect(slots[4].startAt.toISOString()).toBe("2020-10-15T15:45:00.000Z")
 
-		const slots2 = getAvailableTimeSlotsInCalendar({
+		const slots2 = getAvailableTimeSlots({
 			configuration: {
 				timeSlotDuration: 10,
 				slotStartMinuteStep: 5,
@@ -281,7 +221,7 @@ describe("Time Slot Finder", () => {
 		expect(slots2[0].startAt.toISOString()).toBe("2020-10-15T15:10:00.000Z")
 		expect(slots2[1].startAt.toISOString()).toBe("2020-10-15T15:25:00.000Z")
 		expect(slots2[2].startAt.toISOString()).toBe("2020-10-15T15:40:00.000Z")
-		const slots3 = getAvailableTimeSlotsInCalendar({
+		const slots3 = getAvailableTimeSlots({
 			configuration: {
 				timeSlotDuration: 10,
 				slotStartMinuteStep: 15,
@@ -304,7 +244,7 @@ describe("Time Slot Finder", () => {
 	})
 	it("should use 5 as default for slotStartMinuteMultiple parameter", () => {
 		MockDate.set(new Date("2020-10-15T15:03:12.592Z"))
-		const slots = getAvailableTimeSlotsInCalendar({
+		const slots = getAvailableTimeSlots({
 			configuration: {
 				timeSlotDuration: 10,
 				availablePeriods: [{
@@ -320,76 +260,9 @@ describe("Time Slot Finder", () => {
 		expect(slots[0].startAt.toISOString()).toBe("2020-10-15T15:05:00.000Z")
 		expect(slots[4].startAt.toISOString()).toBe("2020-10-15T15:45:00.000Z")
 	})
-	it("should handle properly minAvailableTimeBeforeSlot parameter", () => {
-		MockDate.set(new Date("2020-10-14T15:00:00.000+02:00"))
-		const slots = getAvailableTimeSlotsInCalendar({
-			calendarData: iCalData,
-			configuration: {
-				...baseConfig,
-				minAvailableTimeBeforeSlot: 10,
-			},
-			from: new Date("2020-10-16T15:00:00.000+02:00"),
-			to: new Date("2020-10-16T16:00:00.000+02:00"),
-		})
-		expect(slots.length).toBe(2)
-		expect(slots[0].startAt.toString())
-			.toBe(new Date("2020-10-16T15:10:00.000+02:00").toString())
-		expect(slots[1].startAt.toString())
-			.toBe(new Date("2020-10-16T15:35:00.000+02:00").toString())
-
-		const slots2 = getAvailableTimeSlotsInCalendar({
-			calendarData: iCalData,
-			configuration: {
-				...baseConfig,
-				minAvailableTimeBeforeSlot: 10,
-			},
-			from: new Date("2020-10-16T15:10:00.000+02:00"),
-			to: new Date("2020-10-16T16:00:00.000+02:00"),
-		})
-		expect(slots2.length).toBe(2)
-		expect(slots2[0].startAt.toString())
-			.toBe(new Date("2020-10-16T15:10:00.000+02:00").toString())
-		expect(slots2[1].startAt.toString())
-			.toBe(new Date("2020-10-16T15:35:00.000+02:00").toString())
-	})
-	it("should handle properly minAvailableTimeAfterSlot parameter", () => {
-		MockDate.set(new Date("2020-10-14T15:00:00.000+02:00"))
-		const slots = getAvailableTimeSlotsInCalendar({
-			calendarData: iCalData,
-			configuration: {
-				...baseConfig,
-				minAvailableTimeAfterSlot: 10,
-			},
-			from: new Date("2020-10-16T15:00:00.000+02:00"),
-			to: new Date("2020-10-16T16:00:00.000+02:00"),
-		})
-		expect(slots.length).toBe(2)
-		expect(slots[0].startAt.toString())
-			.toBe(new Date("2020-10-16T15:00:00.000+02:00").toString())
-		expect(slots[1].startAt.toString())
-			.toBe(new Date("2020-10-16T15:25:00.000+02:00").toString())
-
-		const slots2 = getAvailableTimeSlotsInCalendar({
-			calendarData: iCalData,
-			configuration: {
-				...baseConfig,
-				minAvailableTimeAfterSlot: 10,
-			},
-			from: new Date("2020-10-16T15:15:00.000+02:00"),
-			to: new Date("2020-10-16T16:00:00.000+02:00"),
-		})
-		/*
-		 * In calendar Data, there is an event at 15h and 16h
-		 * We excpect an event at 15h15 (15min) but no events then because
-		 * it would start at 15h40, finish at 15h55 and break the 10min available rule
-		 */
-		expect(slots2.length).toBe(1)
-		expect(slots2[0].startAt.toString())
-			.toBe(new Date("2020-10-16T15:15:00.000+02:00").toString())
-	})
 	it("should handle properly minTimeBeforeFirstSlot parameter", () => {
 		MockDate.set(new Date("2020-10-16T14:00:00.000+02:00"))
-		const slots = getAvailableTimeSlotsInCalendar({
+		const slots = getAvailableTimeSlots({
 			configuration: {
 				...baseConfig,
 				minTimeBeforeFirstSlot: 2 * 60,
@@ -403,7 +276,7 @@ describe("Time Slot Finder", () => {
 	})
 	it("should handle properly maxDaysBeforeLastSlot parameter", () => {
 		MockDate.set(new Date("2020-10-15T18:00:00.000+02:00"))
-		const slots = getAvailableTimeSlotsInCalendar({
+		const slots = getAvailableTimeSlots({
 			configuration: {
 				...baseConfig,
 				maxDaysBeforeLastSlot: 1,
@@ -417,7 +290,7 @@ describe("Time Slot Finder", () => {
 	})
 	it("should handle properly timeZone parameter", () => {
 		MockDate.set(new Date("2020-10-15T18:00:00.000+02:00"))
-		const slots = getAvailableTimeSlotsInCalendar({
+		const slots = getAvailableTimeSlots({
 			configuration: {
 				...baseConfig,
 				timeZone: "UTC",
@@ -431,7 +304,7 @@ describe("Time Slot Finder", () => {
 	})
 	it("should handle properly availablePeriods parameter", () => {
 		MockDate.set(new Date("2020-10-15T18:00:00.000+02:00"))
-		const slots = getAvailableTimeSlotsInCalendar({
+		const slots = getAvailableTimeSlots({
 			configuration: {
 				...baseConfig,
 				availablePeriods: [{
@@ -451,7 +324,7 @@ describe("Time Slot Finder", () => {
 		expect(slots[4].startAt.toString())
 			.toBe(new Date("2020-10-16T15:00:00.000+02:00").toString())
 
-		const slots2 = getAvailableTimeSlotsInCalendar({
+		const slots2 = getAvailableTimeSlots({
 			configuration: {
 				...baseConfig,
 				availablePeriods: [{
@@ -469,7 +342,7 @@ describe("Time Slot Finder", () => {
 	})
 	it("should handle properly unavailablePeriods parameter", () => {
 		MockDate.set(new Date("2020-10-15T18:00:00.000+02:00"))
-		const slots = getAvailableTimeSlotsInCalendar({
+		const slots = getAvailableTimeSlots({
 			configuration: {
 				...baseConfig,
 				unavailablePeriods: [{
@@ -490,7 +363,7 @@ describe("Time Slot Finder", () => {
 		expect(slots[7].startAt.toString())
 			.toBe(new Date("2020-10-16T14:45:00.000+02:00").toString())
 
-		const slots2 = getAvailableTimeSlotsInCalendar({
+		const slots2 = getAvailableTimeSlots({
 			configuration: {
 				...baseConfig,
 				unavailablePeriods: [{
@@ -503,7 +376,7 @@ describe("Time Slot Finder", () => {
 		})
 		expect(slots2.length).toBe(14)
 
-		const slots3 = getAvailableTimeSlotsInCalendar({
+		const slots3 = getAvailableTimeSlots({
 			configuration: {
 				...baseConfig,
 				unavailablePeriods: [{
@@ -520,7 +393,7 @@ describe("Time Slot Finder", () => {
 		expect(slots3[7].startAt.toString())
 			.toBe(new Date("2020-10-16T14:45:00.000+02:00").toString())
 
-		const slots4 = getAvailableTimeSlotsInCalendar({
+		const slots4 = getAvailableTimeSlots({
 			configuration: {
 				...baseConfig,
 				unavailablePeriods: [{
@@ -537,7 +410,7 @@ describe("Time Slot Finder", () => {
 		expect(slots4[1].startAt.toString())
 			.toBe(new Date("2020-10-16T14:00:00.000+02:00").toString())
 
-		const slots5 = getAvailableTimeSlotsInCalendar({
+		const slots5 = getAvailableTimeSlots({
 			configuration: {
 				...baseConfig,
 				availablePeriods: [{
@@ -561,7 +434,7 @@ describe("Time Slot Finder", () => {
 		expect(slots5[1].startAt.toString())
 			.toBe(new Date("2020-10-18T10:00:00.000+02:00").toString())
 
-		const slots6 = getAvailableTimeSlotsInCalendar({
+		const slots6 = getAvailableTimeSlots({
 			configuration: {
 				...baseConfig,
 				unavailablePeriods: [{
@@ -579,7 +452,7 @@ describe("Time Slot Finder", () => {
 			.toBe(new Date("2020-10-16T17:30:00.000+02:00").toString())
 	})
 	it("should throw for invalid from and/or to parameters", () => {
-		expect(() => getAvailableTimeSlotsInCalendar({
+		expect(() => getAvailableTimeSlots({
 			configuration: baseConfig,
 			from: new Date("2020-10-16T18:30:00.000+02:00"),
 			to: new Date("2020-10-16T15:00:00.000+02:00"),
@@ -587,7 +460,7 @@ describe("Time Slot Finder", () => {
 	})
 	it(`should properly overlap minAvailableTimeBeforeSlot and minAvailableTimeAfterSlot`, () => {
 		MockDate.set(new Date("2020-10-14T15:00:00.000+02:00"))
-		const slots = getAvailableTimeSlotsInCalendar({
+		const slots = getAvailableTimeSlots({
 			configuration: {
 				...baseConfig,
 				minAvailableTimeBeforeSlot: 10,
