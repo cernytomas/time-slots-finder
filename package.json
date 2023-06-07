@@ -1,9 +1,9 @@
 {
-  "name": "time-slots-finder",
-  "version": "0.5.5",
+  "name": "@cernytomas/time-slots-finder",
+  "version": "0.5.6",
   "description": "A module to extract available time slots from a calendar.",
   "main": "lib/index.js",
-  "repository": "https://github.com/PINPODEV/time-slots-finder.git",
+  "repository": "https://github.com/cernytomas/time-slots-finder.git",
   "bugs": {
     "url": "https://github.com/PINPODEV/time-slots-finder/issues"
   },
@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@types/jest": "^26.0.15",
+    "@types/luxon": "^3.3.0",
     "@types/node": "^14.11.8",
     "@typescript-eslint/eslint-plugin": "^4.4.1",
     "@typescript-eslint/parser": "^4.4.1",
@@ -47,6 +48,11 @@
   ],
   "dependencies": {
     "dayjs": "^1.9.3",
-    "ical2json": "^3.0.0"
+    "ical2json": "^3.0.0",
+    "luxon": "^3.3.0"
+  },
+  "directories": {
+    "lib": "lib",
+    "test": "tests"
   }
 }

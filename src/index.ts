@@ -1,6 +1,7 @@
 import "./dayjs-setup"
 
 import { getAvailableTimeSlotsInCalendar, TimeSlotsFinderParameters } from "./time-slots"
+import { getAvailableTimeSlots } from "./time-slots-luxon"
 import { isConfigurationValid } from "./config-management"
 import {
 	DatePeriod,
@@ -21,6 +22,7 @@ export {
 	Shift,
 	TimeSlotsFinderCalendarFormat,
 	TimeSlot,
+    getAvailableTimeSlots,
 	getAvailableTimeSlotsInCalendar,
 	isConfigurationValid,
 }
